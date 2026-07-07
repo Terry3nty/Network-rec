@@ -35,7 +35,7 @@ function RecommendContent() {
   const [geoError, setGeoError] = useState<string | null>(null);
   const [gpsLoading, setGpsLoading] = useState(false);
 
-  // Request browser geolocation
+  // Request browser geolocation with IP-based fallback
   const triggerGPS = useCallback(() => {
     setGpsLoading(true);
     setGeoError(null);
@@ -46,22 +46,47 @@ function RecommendContent() {
       return;
     }
 
+    const fallbackToIP = async (): Promise<boolean> => {
+      try {
+        const res = await fetch('https://ipapi.co/json/');
+        if (!res.ok) throw new Error('IP API failed');
+        const data = await res.json();
+        const lat = parseFloat(data.latitude);
+        const lng = parseFloat(data.longitude);
+        if (!isNaN(lat) && !isNaN(lng)) {
+          setGpsLoading(false);
+          router.push(`/recommend?lat=${lat}&lng=${lng}`);
+          return true;
+        }
+      } catch (e) {
+        console.error('IP Geolocation fallback error:', e);
+      }
+      return false;
+    };
+
     navigator.geolocation.getCurrentPosition(
       (position) => {
         const { latitude, longitude } = position.coords;
         setGpsLoading(false);
         router.push(`/recommend?lat=${latitude}&lng=${longitude}`);
       },
-      (err) => {
-        console.error('GPS error:', err);
+      async (err) => {
+        console.warn('Hardware GPS failed, attempting IP Geolocation fallback...', err);
+        const success = await fallbackToIP();
+        if (success) return;
+
         let msg = 'Could not access geolocation sensor.';
         if (err.code === 1) {
           msg = 'Location permission was denied. Please search manually below.';
+        } else if (err.code === 2) {
+          msg = 'Position unavailable. Check your device location settings or search manually.';
+        } else if (err.code === 3) {
+          msg = 'Location request timed out. Please try again or search manually.';
         }
         setGeoError(msg);
         setGpsLoading(false);
       },
-      { enableHighAccuracy: false, timeout: 15000 }
+      { enableHighAccuracy: false, timeout: 6000 }
     );
   }, [router]);
 

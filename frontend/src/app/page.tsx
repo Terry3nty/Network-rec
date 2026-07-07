@@ -15,6 +15,24 @@ export default function Home() {
   const [searchResults, setSearchResults] = useState<GeocodeResult[]>([]);
   const [searching, setSearching] = useState(false);
 
+  // Fallback to IP-based Geolocation if hardware sensors fail
+  const fallbackToIP = async (): Promise<boolean> => {
+    try {
+      const res = await fetch('https://ipapi.co/json/');
+      if (!res.ok) throw new Error('IP API failed');
+      const data = await res.json();
+      const lat = parseFloat(data.latitude);
+      const lng = parseFloat(data.longitude);
+      if (!isNaN(lat) && !isNaN(lng)) {
+        router.push(`/recommend?lat=${lat}&lng=${lng}`);
+        return true;
+      }
+    } catch (e) {
+      console.error('IP Geolocation fallback error:', e);
+    }
+    return false;
+  };
+
   // Trigger GPS Geolocation
   const handleGetLocation = () => {
     setLoading(true);
@@ -31,20 +49,23 @@ export default function Home() {
         const { latitude, longitude } = position.coords;
         router.push(`/recommend?lat=${latitude}&lng=${longitude}`);
       },
-      (err) => {
-        console.error('Geolocation error:', err);
+      async (err) => {
+        console.warn('Hardware GPS failed, attempting IP Geolocation fallback...', err);
+        const success = await fallbackToIP();
+        if (success) return;
+
         let msg = 'Failed to retrieve your location.';
         if (err.code === 1) {
           msg = 'Location permission denied. Please search for your location manually below.';
         } else if (err.code === 2) {
-          msg = 'Position unavailable. Check your network or GPS connection.';
+          msg = 'Position unavailable. Check your device location settings or search manually.';
         } else if (err.code === 3) {
           msg = 'Location request timed out. Please try again or search manually.';
         }
         setError(msg);
         setLoading(false);
       },
-      { enableHighAccuracy: true, timeout: 8000 }
+      { enableHighAccuracy: false, timeout: 6000 }
     );
   };
 
