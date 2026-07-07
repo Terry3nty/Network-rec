@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Navigation, MapPin, Search, ShieldCheck, Activity, BarChart3, Wifi, ArrowRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { searchLocation, GeocodeResult } from '../utils/api';
+import SpeedTest from '@/components/SpeedTest';
 
 export default function Home() {
   const router = useRouter();
@@ -202,7 +203,7 @@ export default function Home() {
                     className="flex items-center justify-between px-5 py-3.5 text-sm text-zinc-300 hover:bg-zinc-800/55 cursor-pointer transition-colors group"
                   >
                     <div className="flex items-center gap-2.5 min-w-0">
-                      <MapPin size={14} className="text-zinc-500 group-hover:text-orange-500 transition-colors shrink-0" />
+                      <MapPin size={14} className="text-zinc-505 group-hover:text-orange-500 transition-colors shrink-0" />
                       <span className="truncate pr-2">{result.display_name}</span>
                     </div>
                     <ArrowRight size={12} className="text-zinc-550 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all shrink-0" />
@@ -212,6 +213,11 @@ export default function Home() {
             )}
           </AnimatePresence>
         </motion.div>
+
+        {/* Live Internet Speed Test (Auto-runs on load) */}
+        <div className="mt-6 w-full max-w-md z-10">
+          <SpeedTest />
+        </div>
 
         {/* Core Value Props (Borderless, Shadow Lift) */}
         <div className="mt-24 grid grid-cols-1 gap-6 sm:grid-cols-3 w-full max-w-4xl text-left">

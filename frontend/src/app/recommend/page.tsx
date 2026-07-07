@@ -219,11 +219,8 @@ function RecommendContent() {
           <AlertCircle size={28} />
         </div>
         <h2 className="text-2xl font-black text-white tracking-tight">Recommendation Unavailable</h2>
-        <p className="mt-3 text-sm text-zinc-450 leading-relaxed max-w-md">
-          {(apiError as Error).message || 'We could not fetch data for this region. This happens when the coordinates are outside supported coverage maps.'}
-        </p>
-        <p className="mt-4 text-xs font-bold text-orange-500 bg-orange-500/10 px-3.5 py-1.5 rounded-full border-0 shadow-sm">
-          Seeded: Osiele, Computer Village, Lekki, UI Area, Wuse II, Independent Layout.
+        <p className="mt-3 text-sm text-zinc-455 leading-relaxed max-w-md">
+          {(apiError as Error).message || 'We could not fetch data for this region. Please verify your connection and try again.'}
         </p>
 
         <div className="mt-8 flex gap-4">
