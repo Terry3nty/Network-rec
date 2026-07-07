@@ -61,7 +61,7 @@ function RecommendContent() {
         setGeoError(msg);
         setGpsLoading(false);
       },
-      { enableHighAccuracy: true, timeout: 8000 }
+      { enableHighAccuracy: false, timeout: 15000 }
     );
   }, [router]);
 
