@@ -1,0 +1,55 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: networkwise-db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: networkwise
+    ports:
+      - "5433:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d networkwise"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: networkwise-backend
+    environment:
+      PORT: 5000
+      DATABASE_URL: postgresql://postgres:postgres@db:5432/networkwise?schema=public
+      WEIGHT_SPEED: 0.50
+      WEIGHT_COVERAGE: 0.25
+      WEIGHT_LATENCY: 0.15
+      WEIGHT_RELIABILITY: 0.10
+    ports:
+      - "5000:5000"
+    depends_on:
+      db:
+        condition: service_healthy
+    # Wait for DB, sync schema, seed, and run backend
+    command: >
+      sh -c "npx prisma db push --accept-data-loss && npm run prisma:seed && npm run start"
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: networkwise-frontend
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://172.20.10.3:5000
+    depends_on:
+      - backend
+
+volumes:
+  pgdata:

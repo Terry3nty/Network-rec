@@ -1,0 +1,35 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Provider {
+  id          String           @id @default(uuid())
+  name        String           @unique // e.g. "MTN", "Airtel", "Glo", "9mobile"
+  displayName String
+  brandColor  String           // Hex code e.g. "#FFCC00" for MTN
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  metrics     LocationMetric[]
+}
+
+model LocationMetric {
+  id            String   @id @default(uuid())
+  latitude      Float
+  longitude     Float
+  downloadSpeed Float    // in Mbps
+  uploadSpeed   Float    // in Mbps
+  latency       Float    // in ms
+  coverage      Float    // 0 - 100 percentage
+  reliability   Float    // 0 - 100 percentage
+  providerId    String
+  provider      Provider @relation(fields: [providerId], references: [id], onDelete: Cascade)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([latitude, longitude])
+}
