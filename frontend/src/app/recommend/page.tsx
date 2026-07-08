@@ -1,22 +1,31 @@
 'use client';
 
-import React, { Suspense, useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
-import dynamic from 'next/dynamic';
-import { MapPin, Navigation, AlertCircle, Search, ChevronRight, RefreshCw, Loader2, ArrowLeft } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
 import { fetchRecommendation, searchLocation, GeocodeResult } from '../../utils/api';
-import LoadingAnimation from '@/components/LoadingAnimation';
 import RecommendationCard from '@/components/RecommendationCard';
 import RankingList from '@/components/RankingList';
+import LoadingAnimation from '@/components/LoadingAnimation';
+import dynamic from 'next/dynamic';
+import {
+  MapPin,
+  Search,
+  Navigation,
+  RefreshCw,
+  ArrowLeft,
+  AlertCircle,
+  ChevronRight,
+  Loader2,
+} from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 
-// Dynamically import Leaflet Map to avoid SSR errors
+// Dynamic import of Leaflet Map to prevent SSR errors
 const LeafletMap = dynamic(() => import('@/components/Map'), {
   ssr: false,
   loading: () => (
-    <div className="flex h-full w-full items-center justify-center bg-zinc-900 rounded-2xl min-h-[300px] md:min-h-[400px] shadow-inner animate-pulse">
-      <span className="text-xs text-zinc-500 font-bold">Booting map renderer...</span>
+    <div className="flex h-[320px] w-full items-center justify-center rounded-2xl bg-input-bg border border-[var(--card-border)]">
+      <Loader2 className="h-8 w-8 animate-spin text-orange-500" />
     </div>
   ),
 });
@@ -32,6 +41,7 @@ function RecommendContent() {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<GeocodeResult[]>([]);
   const [searching, setSearching] = useState(false);
+
   const [geoError, setGeoError] = useState<string | null>(null);
   const [gpsLoading, setGpsLoading] = useState(false);
 
@@ -90,12 +100,13 @@ function RecommendContent() {
     );
   }, [router]);
 
-  // Sync coords state with URL search parameters
+  // Synchronize URL parameters to react state
   useEffect(() => {
     if (latParam && lngParam) {
       const lat = parseFloat(latParam);
       const lng = parseFloat(lngParam);
       if (!isNaN(lat) && !isNaN(lng)) {
+        // Trigger coordinate update asynchronously to avoid state issues in render
         const timer = setTimeout(() => {
           setCoords({ lat, lng });
           setGeoError(null);
@@ -163,13 +174,13 @@ function RecommendContent() {
         <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-orange-500/10 text-orange-500 mb-6 border-0 shadow-md animate-pulse">
           <MapPin size={28} />
         </div>
-        <h2 className="text-2xl font-black text-white tracking-tight">Location Access Required</h2>
-        <p className="mt-3 text-sm text-zinc-400 max-w-md leading-relaxed">
+        <h2 className="text-2xl font-black text-foreground tracking-tight">Location Access Required</h2>
+        <p className="mt-3 text-sm text-muted-txt max-w-md leading-relaxed">
           To rank the local mobile providers, please grant location access or search for your city name below.
         </p>
 
         {geoError && (
-          <p className="mt-4 text-xs font-bold text-red-400 bg-red-950/20 p-3 rounded-xl border-0">
+          <p className="mt-4 text-xs font-bold text-red-405 bg-red-955/10 p-3.5 rounded-xl border border-red-500/20">
             {geoError}
           </p>
         )}
@@ -177,7 +188,7 @@ function RecommendContent() {
         <div className="mt-8 flex justify-center">
           <button
             onClick={triggerGPS}
-            className="flex items-center gap-2 rounded-2xl bg-orange-650 px-5 py-3 text-sm font-bold text-white shadow-lg hover:bg-orange-600 border-0 cursor-pointer active:scale-98"
+            className="flex items-center gap-2 rounded-2xl bg-orange-655 px-5 py-3 text-sm font-bold text-white shadow-lg hover:bg-orange-600 border-0 cursor-pointer active:scale-98"
           >
             <Navigation size={16} />
             Try Accessing My GPS
@@ -185,9 +196,9 @@ function RecommendContent() {
         </div>
 
         <div className="my-8 flex items-center justify-center gap-3 w-full max-w-md">
-          <span className="h-px w-full bg-zinc-800/80" />
-          <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-500 shrink-0">Or Search Manually</span>
-          <span className="h-px w-full bg-zinc-800/80" />
+          <span className="h-px w-full bg-[var(--divider)]" />
+          <span className="text-[10px] font-bold uppercase tracking-wider text-muted-txt shrink-0">Or Search Manually</span>
+          <span className="h-px w-full bg-[var(--divider)]" />
         </div>
 
         <form onSubmit={handleSearch} className="flex gap-2.5 w-full max-w-md relative">
@@ -196,12 +207,12 @@ function RecommendContent() {
             placeholder="Search by city e.g. Osiele..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="flex-grow rounded-2xl bg-zinc-900 px-4 py-3.5 text-sm text-white placeholder-zinc-500 outline-none focus:ring-1 focus:ring-orange-500/50 border-0"
+            className="flex-grow rounded-2xl bg-input-bg px-4 py-3.5 text-sm text-foreground placeholder-muted-txt outline-none focus:ring-1 focus:ring-orange-500/50 border border-[var(--card-border)]"
           />
           <button
             type="submit"
             disabled={searching}
-            className="rounded-2xl bg-zinc-800 hover:bg-zinc-750 text-zinc-200 hover:text-white px-4.5 border-0 transition-colors disabled:opacity-50 cursor-pointer"
+            className="rounded-2xl bg-input-bg border border-[var(--card-border)] hover:bg-[var(--divider)] text-foreground px-4.5 transition-colors disabled:opacity-50 cursor-pointer"
           >
             <Search size={18} />
           </button>
@@ -213,16 +224,16 @@ function RecommendContent() {
                 initial={{ opacity: 0, y: 5 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0 }}
-                className="absolute left-0 top-full mt-2 z-50 w-full bg-zinc-900 divide-y divide-zinc-800 rounded-2xl text-left overflow-hidden max-h-56 overflow-y-auto shadow-2xl border-0"
+                className="absolute left-0 top-full mt-2 z-50 w-full bg-card divide-y divide-[var(--divider)] rounded-2xl text-left overflow-hidden max-h-56 overflow-y-auto shadow-[var(--card-shadow)] border border-[var(--card-border)]"
               >
                 {searchResults.map((res, idx) => (
                   <li
                     key={idx}
                     onClick={() => handleSelectLocation(res)}
-                    className="flex items-center justify-between px-4.5 py-3.5 text-sm text-zinc-300 hover:bg-zinc-800/50 cursor-pointer group"
+                    className="flex items-center justify-between px-4.5 py-3.5 text-sm text-foreground hover:bg-[var(--divider)] cursor-pointer group"
                   >
                     <div className="flex items-center gap-2.5 min-w-0">
-                      <MapPin size={14} className="text-zinc-500 group-hover:text-orange-500 transition-colors shrink-0" />
+                      <MapPin size={14} className="text-muted-txt group-hover:text-orange-500 transition-colors shrink-0" />
                       <span className="truncate pr-2">{res.display_name}</span>
                     </div>
                     <ChevronRight size={12} className="text-zinc-500 opacity-0 -translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 transition-all shrink-0" />
@@ -243,15 +254,15 @@ function RecommendContent() {
         <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-red-950/20 text-red-400 mb-6 border-0 shadow-md">
           <AlertCircle size={28} />
         </div>
-        <h2 className="text-2xl font-black text-white tracking-tight">Recommendation Unavailable</h2>
-        <p className="mt-3 text-sm text-zinc-455 leading-relaxed max-w-md">
+        <h2 className="text-2xl font-black text-foreground tracking-tight">Recommendation Unavailable</h2>
+        <p className="mt-3 text-sm text-muted-txt leading-relaxed max-w-md">
           {(apiError as Error).message || 'We could not fetch data for this region. Please verify your connection and try again.'}
         </p>
 
         <div className="mt-8 flex gap-4">
           <button
             onClick={() => router.push('/')}
-            className="flex items-center gap-1.5 rounded-xl bg-zinc-900 px-5 py-3 text-sm font-semibold hover:bg-zinc-800 text-zinc-300 transition-colors border-0 cursor-pointer active:scale-98"
+            className="flex items-center gap-1.5 rounded-xl bg-card border border-[var(--card-border)] px-5 py-3 text-sm font-semibold hover:bg-[var(--divider)] text-foreground transition-colors shadow-[var(--card-shadow)] cursor-pointer active:scale-98"
           >
             <ArrowLeft size={16} />
             Back to Home
@@ -273,12 +284,12 @@ function RecommendContent() {
       {/* Search & Location Bar */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
         <div>
-          <nav className="flex items-center gap-1.5 text-xs text-zinc-500 mb-1 border-0">
+          <nav className="flex items-center gap-1.5 text-xs text-muted-txt mb-1 border-0">
             <span>Home</span>
             <ChevronRight size={11} />
             <span className="font-bold text-orange-500">Recommend</span>
           </nav>
-          <h1 className="text-2xl font-black text-white flex items-center gap-2.5 tracking-tight">
+          <h1 className="text-2xl font-black text-foreground flex items-center gap-2.5 tracking-tight">
             Coverage Analysis
             {isRefetching && <RefreshCw size={15} className="animate-spin text-orange-500" />}
           </h1>
@@ -288,7 +299,7 @@ function RecommendContent() {
         <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto relative">
           <button
             onClick={triggerGPS}
-            className="flex items-center justify-center gap-1.5 rounded-xl bg-zinc-900 px-4 py-2.5 text-sm font-bold text-zinc-200 hover:bg-zinc-800 hover:text-white transition-colors border-0 cursor-pointer"
+            className="flex items-center justify-center gap-1.5 rounded-xl bg-input-bg border border-[var(--card-border)] px-4 py-2.5 text-sm font-bold text-foreground hover:bg-[var(--divider)] transition-colors cursor-pointer"
           >
             <Navigation size={13} />
             Locate Me
@@ -300,12 +311,12 @@ function RecommendContent() {
               placeholder="Search other area..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="rounded-xl bg-zinc-900 px-4 py-2.5 text-sm text-white placeholder-zinc-500 outline-none focus:ring-1 focus:ring-orange-500/50 sm:w-60 transition-colors border-0 flex-grow"
+              className="rounded-xl bg-input-bg border border-[var(--card-border)] px-4 py-2.5 text-sm text-foreground placeholder-muted-txt outline-none focus:ring-1 focus:ring-orange-500/50 sm:w-60 transition-colors flex-grow"
             />
             <button
               type="submit"
               disabled={searching}
-              className="rounded-xl bg-zinc-800 hover:bg-zinc-750 text-zinc-200 hover:text-white px-3.5 border-0 transition-colors disabled:opacity-50 cursor-pointer"
+              className="rounded-xl bg-input-bg border border-[var(--card-border)] hover:bg-[var(--divider)] text-foreground px-3.5 transition-colors disabled:opacity-50 cursor-pointer"
             >
               <Search size={15} />
             </button>
@@ -317,16 +328,16 @@ function RecommendContent() {
                   initial={{ opacity: 0, y: 5 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0 }}
-                  className="absolute left-0 top-full mt-2.5 z-50 w-full bg-zinc-900 divide-y divide-zinc-800 rounded-2xl text-left overflow-hidden max-h-56 overflow-y-auto shadow-2xl border-0"
+                  className="absolute left-0 top-full mt-2.5 z-50 w-full bg-card divide-y divide-[var(--divider)] rounded-2xl text-left overflow-hidden max-h-56 overflow-y-auto shadow-[var(--card-shadow)] border border-[var(--card-border)]"
                 >
                   {searchResults.map((res, idx) => (
                     <li
                       key={idx}
                       onClick={() => handleSelectLocation(res)}
-                      className="flex items-center justify-between px-4 py-3 text-xs text-zinc-300 hover:bg-zinc-800/50 cursor-pointer group"
+                      className="flex items-center justify-between px-4 py-3 text-xs text-foreground hover:bg-[var(--divider)] cursor-pointer group"
                     >
                       <div className="flex items-center gap-2 min-w-0">
-                        <MapPin size={13} className="text-zinc-500 group-hover:text-orange-500 transition-colors shrink-0" />
+                        <MapPin size={13} className="text-muted-txt group-hover:text-orange-500 transition-colors shrink-0" />
                         <span className="truncate pr-1">{res.display_name}</span>
                       </div>
                       <ChevronRight size={12} className="text-zinc-500 opacity-0 -translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 transition-all shrink-0" />
@@ -354,17 +365,17 @@ function RecommendContent() {
 
           {/* Right Panel: Map */}
           <div className="lg:col-span-5 lg:sticky lg:top-24">
-            <div className="rounded-3xl bg-zinc-900/60 p-5 shadow-2xl backdrop-blur-md border-0">
+            <div className="rounded-3xl bg-card p-5 shadow-[var(--card-shadow)] border border-[var(--card-border)]">
               <div className="flex items-center justify-between mb-4.5">
                 <div>
-                  <h3 className="text-base font-extrabold text-white tracking-tight">Geographic Map</h3>
-                  <p className="text-[10px] font-bold text-zinc-550 uppercase tracking-wider mt-0.5">
+                  <h3 className="text-base font-extrabold text-foreground tracking-tight">Geographic Map</h3>
+                  <p className="text-[10px] font-bold text-muted-txt uppercase tracking-wider mt-0.5">
                     Signal Coverage Visualizer
                   </p>
                 </div>
                 <div className="text-right">
-                  <span className="text-[9px] text-zinc-500 font-bold uppercase tracking-wider block">Coords</span>
-                  <span className="text-xs font-mono font-bold text-zinc-300 bg-zinc-950 px-2 py-0.5 rounded-md border-0 shadow-inner">
+                  <span className="text-[9px] text-muted-txt font-bold uppercase tracking-wider block">Coords</span>
+                  <span className="text-xs font-mono font-bold text-foreground bg-input-bg border border-[var(--card-border)] px-2 py-0.5 rounded-md shadow-inner">
                     {coords.lat.toFixed(4)}, {coords.lng.toFixed(4)}
                   </span>
                 </div>
@@ -388,7 +399,7 @@ export default function RecommendPage() {
       <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 flex items-center justify-center min-h-[70vh]">
         <div className="flex flex-col items-center">
           <Loader2 size={32} className="animate-spin text-orange-500 mb-2" />
-          <span className="text-zinc-500 text-sm font-bold">Initializing views...</span>
+          <span className="text-muted-txt text-sm font-bold">Initializing views...</span>
         </div>
       </div>
     }>

@@ -7,10 +7,14 @@ export class MockExternalProvider implements IDataProvider {
     // Simulate API delay
     await new Promise((resolve) => setTimeout(resolve, 300));
 
-    // Base performance benchmarks for Nigerian operators
+    // Base performance benchmarks for Nigerian operators (mobile + Wi-Fi ISPs)
     const basePerformances = [
+      { providerName: 'Starlink', baseDownload: 110, baseUpload: 25, baseLatency: 35, baseCoverage: 98, baseReliability: 96 },
+      { providerName: 'FiberOne', baseDownload: 75, baseUpload: 20, baseLatency: 15, baseCoverage: 85, baseReliability: 97 },
       { providerName: 'MTN', baseDownload: 55, baseUpload: 15, baseLatency: 25, baseCoverage: 92, baseReliability: 95 },
       { providerName: 'Airtel', baseDownload: 50, baseUpload: 14, baseLatency: 28, baseCoverage: 90, baseReliability: 93 },
+      { providerName: 'Spectranet', baseDownload: 42, baseUpload: 12, baseLatency: 32, baseCoverage: 88, baseReliability: 88 },
+      { providerName: 'Smile', baseDownload: 38, baseUpload: 10, baseLatency: 30, baseCoverage: 85, baseReliability: 85 },
       { providerName: 'Glo', baseDownload: 30, baseUpload: 9, baseLatency: 42, baseCoverage: 82, baseReliability: 80 },
       { providerName: '9mobile', baseDownload: 20, baseUpload: 6, baseLatency: 52, baseCoverage: 75, baseReliability: 70 },
     ];

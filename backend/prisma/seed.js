@@ -7,6 +7,10 @@ const providersData = [
   { name: 'Airtel', displayName: 'Airtel Nigeria', brandColor: '#E30A17' },
   { name: 'Glo', displayName: 'Globacom (Glo)', brandColor: '#73B72C' },
   { name: '9mobile', displayName: '9mobile', brandColor: '#006643' },
+  { name: 'Starlink', displayName: 'Starlink (SpaceX)', brandColor: '#A0AEC0' },
+  { name: 'FiberOne', displayName: 'FiberOne Broadband', brandColor: '#D2232A' },
+  { name: 'Spectranet', displayName: 'Spectranet LTE', brandColor: '#FF5500' },
+  { name: 'Smile', displayName: 'Smile Communications', brandColor: '#9B51E0' },
 ];
 
 // Coordinates of key locations in Nigeria
@@ -93,6 +97,22 @@ async function main() {
   }
 
   console.log('Providers seeded.');
+
+  // Inject Wi-Fi/ISP metrics dynamically for each location before seeding
+  for (const loc of locations) {
+    loc.metrics['Starlink'] = { downloadSpeed: 95, uploadSpeed: 22, latency: 38, coverage: 98, reliability: 96 };
+    
+    const isUrban = loc.name.includes('Lekki') || loc.name.includes('Computer Village') || loc.name.includes('Wuse II');
+    if (isUrban) {
+      loc.metrics['FiberOne'] = { downloadSpeed: 80, uploadSpeed: 25, latency: 14, coverage: 90, reliability: 97 };
+      loc.metrics['Spectranet'] = { downloadSpeed: 42, uploadSpeed: 12, latency: 30, coverage: 85, reliability: 86 };
+      loc.metrics['Smile'] = { downloadSpeed: 38, uploadSpeed: 10, latency: 28, coverage: 80, reliability: 84 };
+    } else {
+      loc.metrics['FiberOne'] = { downloadSpeed: 35, uploadSpeed: 10, latency: 20, coverage: 35, reliability: 92 };
+      loc.metrics['Spectranet'] = { downloadSpeed: 28, uploadSpeed: 8, latency: 38, coverage: 65, reliability: 78 };
+      loc.metrics['Smile'] = { downloadSpeed: 24, uploadSpeed: 6, latency: 35, coverage: 60, reliability: 76 };
+    }
+  }
 
   // Create coordinates clusters with some randomized variations to simulate realistic metrics
   for (const loc of locations) {

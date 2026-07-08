@@ -92,24 +92,24 @@ export default function SpeedTest() {
   const getSpeedRecommendation = () => {
     if (speed >= 40) return { text: 'Excellent Connection', desc: 'Blazing speed. Perfect for heavy gaming, 4K streaming and high bandwidth downloads.', color: 'text-green-500' };
     if (speed >= 15) return { text: 'Good Connection', desc: 'Stable speed. Ideal for HD streaming, zoom calls, and standard web browsing.', color: 'text-orange-500' };
-    return { text: 'Low Connection', desc: 'Slow response. Check other operators or move closer to windows for better reception.', color: 'text-zinc-500' };
+    return { text: 'Low Connection', desc: 'Slow response. Check other operators or move closer to windows for better reception.', color: 'text-muted-txt font-extrabold' };
   };
 
   const recommendation = getSpeedRecommendation();
 
   return (
-    <div className="rounded-3xl bg-zinc-900/60 p-6 md:p-8 shadow-2xl backdrop-blur-md border-0 relative overflow-hidden transition-all duration-300 w-full">
+    <div className="rounded-3xl bg-card p-6 md:p-8 shadow-[var(--card-shadow)] border border-[var(--card-border)] relative overflow-hidden transition-all duration-300 w-full text-left">
       {/* Glow highlight */}
-      <div className="absolute top-0 left-0 h-1.5 w-full bg-gradient-to-r from-orange-600 to-amber-500 animate-pulse" />
+      <div className="absolute top-0 left-0 h-1.5 w-full bg-gradient-to-r from-orange-655 to-amber-500 animate-pulse" />
 
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h3 className="text-base font-extrabold text-white tracking-tight flex items-center gap-2">
+          <h3 className="text-base font-extrabold text-foreground tracking-tight flex items-center gap-2">
             <Zap size={16} className="text-orange-500" />
             Live Network Speed Test
           </h3>
-          <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider mt-0.5">
+          <p className="text-[10px] font-bold text-muted-txt uppercase tracking-wider mt-0.5">
             Real-time connection audit
           </p>
         </div>
@@ -117,7 +117,7 @@ export default function SpeedTest() {
         <button
           onClick={runSpeedTest}
           disabled={testState === 'pinging' || testState === 'downloading'}
-          className="flex h-9 w-9 items-center justify-center rounded-xl bg-zinc-950 hover:bg-zinc-800 text-zinc-400 hover:text-white border-0 transition-colors cursor-pointer disabled:opacity-30 active:scale-95 shrink-0"
+          className="flex h-9 w-9 items-center justify-center rounded-xl bg-input-bg border border-[var(--card-border)] hover:bg-[var(--divider)] text-foreground transition-colors cursor-pointer disabled:opacity-30 active:scale-95 shrink-0"
           title="Re-run speed test"
         >
           <RefreshCw size={14} className={testState === 'pinging' || testState === 'downloading' ? 'animate-spin text-orange-500' : ''} />
@@ -135,11 +135,11 @@ export default function SpeedTest() {
               cy="50"
               r="40"
               fill="transparent"
-              stroke="#1f2937"
+              stroke="var(--divider)"
               strokeWidth="6"
             />
             {/* Active speed progress indicator */}
-            <motion.circle
+            <circle
               cx="50"
               cy="50"
               r="40"
@@ -149,8 +149,7 @@ export default function SpeedTest() {
               strokeDasharray="251.2"
               strokeDashoffset={strokeDashoffset}
               strokeLinecap="round"
-              animate={{ strokeDashoffset }}
-              transition={{ type: 'spring', stiffness: 60, damping: 15 }}
+              style={{ transition: 'stroke-dashoffset 0.8s ease-out' }}
             />
             {/* Gradient definition */}
             <defs>
@@ -163,10 +162,10 @@ export default function SpeedTest() {
 
           {/* Speed value overlays */}
           <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
-            <span className="text-3xl font-black text-white tracking-tight leading-none">
+            <span className="text-3xl font-black text-foreground tracking-tight leading-none">
               {speed}
             </span>
-            <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mt-1">
+            <span className="text-[10px] font-bold text-muted-txt uppercase tracking-widest mt-1">
               Mbps
             </span>
           </div>
@@ -177,20 +176,20 @@ export default function SpeedTest() {
           <div className="grid grid-cols-2 gap-4">
             
             {/* Download panel */}
-            <div className="p-3 bg-zinc-950/80 rounded-2xl border-0 shadow-inner">
-              <span className="text-[10px] text-zinc-500 font-extrabold uppercase tracking-wider block">Download Speed</span>
-              <span className="text-lg font-black text-white block mt-1 whitespace-nowrap">
+            <div className="p-3 bg-input-bg rounded-2xl border border-[var(--card-border)] shadow-inner">
+              <span className="text-[10px] text-muted-txt font-extrabold uppercase tracking-wider block">Download Speed</span>
+              <span className="text-lg font-black text-foreground block mt-1 whitespace-nowrap">
                 {speed > 0 ? `${speed} Mbps` : 'Measuring...'}
               </span>
             </div>
 
             {/* Latency (Ping) panel */}
-            <div className="p-3 bg-zinc-950/80 rounded-2xl border-0 shadow-inner">
-              <span className="text-[10px] text-zinc-500 font-extrabold uppercase tracking-wider flex items-center gap-1">
-                <Activity size={10} className="text-zinc-500 shrink-0" />
+            <div className="p-3 bg-input-bg rounded-2xl border border-[var(--card-border)] shadow-inner">
+              <span className="text-[10px] text-muted-txt font-extrabold uppercase tracking-wider flex items-center gap-1">
+                <Activity size={10} className="text-muted-txt shrink-0" />
                 Latency (Ping)
               </span>
-              <span className="text-lg font-black text-white block mt-1">
+              <span className="text-lg font-black text-foreground block mt-1">
                 {ping !== null ? `${ping} ms` : 'Testing...'}
               </span>
             </div>
@@ -205,7 +204,7 @@ export default function SpeedTest() {
                   initial={{ opacity: 0, y: 5 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0 }}
-                  className="flex items-center gap-2 text-zinc-400 font-medium"
+                  className="flex items-center gap-2 text-muted-txt font-medium"
                 >
                   <LoaderIcon />
                   <span>Measuring connection latency RTT...</span>
@@ -219,14 +218,14 @@ export default function SpeedTest() {
                   exit={{ opacity: 0 }}
                   className="space-y-1.5"
                 >
-                  <div className="flex items-center justify-between text-zinc-400 font-medium">
+                  <div className="flex items-center justify-between text-muted-txt font-medium">
                     <span className="flex items-center gap-2">
                       <LoaderIcon />
                       Streaming test payload...
                     </span>
-                    <span className="font-bold text-orange-550">{Math.round(progress)}%</span>
+                    <span className="font-bold text-orange-555">{Math.round(progress)}%</span>
                   </div>
-                  <div className="h-1 w-full bg-zinc-800 rounded-full overflow-hidden">
+                  <div className="h-1 w-full bg-[var(--divider)] rounded-full overflow-hidden">
                     <div className="h-full bg-orange-500 rounded-full transition-all duration-100" style={{ width: `${progress}%` }} />
                   </div>
                 </motion.div>
@@ -244,7 +243,7 @@ export default function SpeedTest() {
                     <span className={`font-black block text-sm tracking-tight ${recommendation.color}`}>
                       {recommendation.text}
                     </span>
-                    <p className="text-zinc-450 text-[11px] leading-relaxed mt-0.5">
+                    <p className="text-muted-txt text-[11px] leading-relaxed mt-0.5">
                       {recommendation.desc}
                     </p>
                   </div>
@@ -256,12 +255,12 @@ export default function SpeedTest() {
                   initial={{ opacity: 0, y: 5 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0 }}
-                  className="flex items-start gap-2.5 text-red-400"
+                  className="flex items-start gap-2.5 text-red-405 font-bold"
                 >
                   <AlertCircle size={15} className="shrink-0 mt-0.5" />
                   <div>
-                    <span className="font-extrabold block text-sm tracking-tight">Test Interrupted</span>
-                    <p className="text-zinc-500 text-[11px] leading-relaxed mt-0.5">
+                    <span className="font-extrabold block text-sm tracking-tight text-red-500">Test Interrupted</span>
+                    <p className="text-muted-txt text-[11px] leading-relaxed mt-0.5">
                       {errorMsg || 'Server refused connections. Check backend logs.'}
                     </p>
                   </div>

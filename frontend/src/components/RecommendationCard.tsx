@@ -44,18 +44,73 @@ export const getProviderStyle = (name: string) => {
       text: 'text-green-500',
       brandColor: '#73B72C',
       accentBg: 'bg-gradient-to-r from-green-600 to-emerald-500',
-      badge: 'bg-green-500/10 text-green-400 border-0',
+      badge: 'bg-green-500/10 text-green-450 border-0',
     };
   }
-  // 9mobile or fallback
+  if (normalized.includes('starlink')) {
+    return {
+      bg: 'bg-zinc-900/60',
+      border: 'border-0',
+      shadow: 'shadow-xl shadow-slate-400/5',
+      text: 'text-slate-400',
+      brandColor: '#A0AEC0',
+      accentBg: 'bg-gradient-to-r from-slate-500 to-zinc-400',
+      badge: 'bg-slate-500/10 text-slate-400 border-0',
+    };
+  }
+  if (normalized.includes('fiberone')) {
+    return {
+      bg: 'bg-zinc-900/60',
+      border: 'border-0',
+      shadow: 'shadow-xl shadow-rose-500/5',
+      text: 'text-rose-500',
+      brandColor: '#D2232A',
+      accentBg: 'bg-gradient-to-r from-rose-500 to-red-500',
+      badge: 'bg-rose-500/10 text-rose-455 border-0',
+    };
+  }
+  if (normalized.includes('spectranet')) {
+    return {
+      bg: 'bg-zinc-900/60',
+      border: 'border-0',
+      shadow: 'shadow-xl shadow-orange-500/5',
+      text: 'text-orange-500',
+      brandColor: '#FF5500',
+      accentBg: 'bg-gradient-to-r from-orange-500 to-amber-500',
+      badge: 'bg-orange-500/10 text-orange-500 border-0',
+    };
+  }
+  if (normalized.includes('smile')) {
+    return {
+      bg: 'bg-zinc-900/60',
+      border: 'border-0',
+      shadow: 'shadow-xl shadow-purple-500/5',
+      text: 'text-purple-400',
+      brandColor: '#9B51E0',
+      accentBg: 'bg-gradient-to-r from-purple-500 to-indigo-500',
+      badge: 'bg-purple-500/10 text-purple-400 border-0',
+    };
+  }
+  if (normalized.includes('9mobile')) {
+    return {
+      bg: 'bg-zinc-900/60',
+      border: 'border-0',
+      shadow: 'shadow-xl shadow-emerald-500/5',
+      text: 'text-emerald-500',
+      brandColor: '#006643',
+      accentBg: 'bg-gradient-to-r from-emerald-600 to-teal-500',
+      badge: 'bg-emerald-500/10 text-emerald-450 border-0',
+    };
+  }
+  // Fallback
   return {
     bg: 'bg-zinc-900/60',
     border: 'border-0',
-    shadow: 'shadow-xl shadow-emerald-500/5',
-    text: 'text-emerald-500',
-    brandColor: '#006643',
-    accentBg: 'bg-gradient-to-r from-emerald-600 to-teal-500',
-    badge: 'bg-emerald-500/10 text-emerald-450 border-0',
+    shadow: 'shadow-xl shadow-zinc-500/5',
+    text: 'text-zinc-400',
+    brandColor: '#71717a',
+    accentBg: 'bg-gradient-to-r from-zinc-600 to-zinc-500',
+    badge: 'bg-zinc-500/10 text-zinc-400 border-0',
   };
 };
 
