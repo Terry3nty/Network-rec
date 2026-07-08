@@ -2,31 +2,16 @@
 @import "leaflet/dist/leaflet.css";
 
 :root {
-  --background: #f8fafc; /* Light Slate-50 */
-  --foreground: #0f172a; /* Light Slate-900 */
+  --background: #09090b; /* Dark Zinc-955 */
+  --foreground: #f4f4f5; /* Dark Zinc-100 */
   
-  --card-bg: #ffffff;    /* Light white cards */
-  --card-border: #e2e8f0; /* Light Slate-200 outline */
-  --card-shadow: 0 10px 15px -3px rgba(15, 23, 42, 0.04), 0 4px 6px -4px rgba(15, 23, 42, 0.04);
+  --card-bg: #18181b;    /* Dark Zinc-900 */
+  --card-border: transparent; /* borderless */
+  --card-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
   
-  --input-bg: #f1f5f9;   /* Light Slate-100 input fields */
-  --muted-text: #627d98; /* Muted slate grey text */
-  --divider: #e2e8f0;    /* Divider lines */
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #09090b; /* Dark Zinc-950 */
-    --foreground: #f4f4f5; /* Dark Zinc-100 */
-    
-    --card-bg: #18181b;    /* Dark Zinc-900 */
-    --card-border: transparent; /* borderless */
-    --card-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-    
-    --input-bg: #09090b;   /* Dark Zinc-950 input fields */
-    --muted-text: #71717a; /* Muted zinc grey text */
-    --divider: #27272a;    /* Divider lines */
-  }
+  --input-bg: #09090b;   /* Dark Zinc-955 input fields */
+  --muted-text: #71717a; /* Muted zinc-500 text */
+  --divider: #27272a;    /* Divider lines */
 }
 
 @theme inline {
@@ -47,7 +32,7 @@ body {
   overflow-x: hidden;
 }
 
-/* Custom scrollbar to match dark/light premium aesthetic */
+/* Custom scrollbar to match dark premium aesthetic */
 ::-webkit-scrollbar {
   width: 8px;
 }
