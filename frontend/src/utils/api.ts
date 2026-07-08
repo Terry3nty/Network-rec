@@ -71,3 +71,70 @@ export async function searchLocation(query: string): Promise<GeocodeResult[]> {
     );
   }
 }
+
+/**
+ * Log traffic stats in database
+ */
+export interface LogVisitPayload {
+  ip: string;
+  isp?: string;
+  city?: string;
+  country?: string;
+  userAgent?: string;
+}
+
+export async function logVisitorVisit(payload: LogVisitPayload): Promise<void> {
+  try {
+    await fetch(`${API_BASE_URL}/analytics/log-visit`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    });
+  } catch (err) {
+    console.error('Failed to log visitor statistics:', err);
+  }
+}
+
+/**
+ * Shared fetch cache for IP address and ISP details
+ */
+export interface NetworkInfo {
+  ip: string;
+  isp: string;
+  city: string;
+  country: string;
+}
+
+let cachedInfo: NetworkInfo | null = null;
+let infoPromise: Promise<NetworkInfo> | null = null;
+
+export function getClientNetworkInfo(): Promise<NetworkInfo> {
+  if (cachedInfo) return Promise.resolve(cachedInfo);
+  if (infoPromise) return infoPromise;
+
+  infoPromise = fetch('https://ipapi.co/json/')
+    .then(async (res) => {
+      if (!res.ok) throw new Error('IP API failed');
+      const data = await res.json();
+      cachedInfo = {
+        ip: data.ip || 'Unknown IP',
+        isp: data.org || 'Unknown ISP',
+        city: data.city || 'Unknown City',
+        country: data.country_name || 'Unknown Country',
+      };
+      return cachedInfo;
+    })
+    .catch((err) => {
+      console.warn('Failed to retrieve IP network details:', err);
+      return {
+        ip: 'Unknown IP',
+        isp: 'Unknown ISP',
+        city: 'Unknown',
+        country: 'Unknown',
+      };
+    });
+
+  return infoPromise;
+}

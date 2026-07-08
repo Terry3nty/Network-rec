@@ -43,6 +43,22 @@ export default function Providers({ children }: { children: React.ReactNode }) {
     const timer = setTimeout(() => {
       setTheme(activeTheme);
     }, 0);
+
+    // Dynamic visitor logging for traffic stats
+    import('@/utils/api').then(({ getClientNetworkInfo, logVisitorVisit }) => {
+      getClientNetworkInfo()
+        .then((info) => {
+          logVisitorVisit({
+            ip: info.ip,
+            isp: info.isp,
+            city: info.city,
+            country: info.country,
+            userAgent: window.navigator.userAgent,
+          });
+        })
+        .catch((err) => console.error('Visitor log logging error:', err));
+    });
+
     return () => clearTimeout(timer);
   }, []);
 

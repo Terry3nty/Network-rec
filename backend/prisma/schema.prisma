@@ -33,3 +33,13 @@ model LocationMetric {
 
   @@index([latitude, longitude])
 }
+
+model VisitorLog {
+  id        String   @id @default(uuid())
+  ip        String
+  isp       String?
+  city      String?
+  country   String?
+  userAgent String?
+  createdAt DateTime @default(now())
+}

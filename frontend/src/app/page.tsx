@@ -24,7 +24,7 @@ export default function Home() {
       const lat = parseFloat(data.latitude);
       const lng = parseFloat(data.longitude);
       if (!isNaN(lat) && !isNaN(lng)) {
-        router.push(`/recommend?lat=${lat}&lng=${lng}`);
+        router.push(`/recommend?lat=${lat}&lng=${lng}&source=ip`);
         return true;
       }
     } catch (e) {

@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Zap, Activity, RefreshCw, CheckCircle2, AlertCircle } from 'lucide-react';
+import { getClientNetworkInfo } from '@/utils/api';
 
 // Get backend base URL from process.env
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
@@ -15,6 +16,16 @@ export default function SpeedTest() {
   const [speed, setSpeed] = useState<number>(0);
   const [progress, setProgress] = useState<number>(0);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [ispName, setIspName] = useState<string>('');
+
+  // Fetch detected network ISP on mount
+  useEffect(() => {
+    getClientNetworkInfo()
+      .then((info) => {
+        setIspName(info.isp);
+      })
+      .catch((err) => console.error(err));
+  }, []);
 
   const runSpeedTest = async () => {
     setTestState('pinging');
@@ -92,7 +103,7 @@ export default function SpeedTest() {
   const getSpeedRecommendation = () => {
     if (speed >= 40) return { text: 'Excellent Connection', desc: 'Blazing speed. Perfect for heavy gaming, 4K streaming and high bandwidth downloads.', color: 'text-green-500' };
     if (speed >= 15) return { text: 'Good Connection', desc: 'Stable speed. Ideal for HD streaming, zoom calls, and standard web browsing.', color: 'text-orange-500' };
-    return { text: 'Low Connection', desc: 'Slow response. Check other operators or move closer to windows for better reception.', color: 'text-muted-txt font-extrabold' };
+    return { text: 'Low Connection', desc: 'Slow response. Check other operators or move closer to windows for better reception.', color: 'text-rose-500 font-black' };
   };
 
   const recommendation = getSpeedRecommendation();
@@ -109,8 +120,15 @@ export default function SpeedTest() {
             <Zap size={16} className="text-orange-500" />
             Live Network Speed Test
           </h3>
-          <p className="text-[10px] font-bold text-muted-txt uppercase tracking-wider mt-0.5">
-            Real-time connection audit
+          <p className="text-[10px] font-bold text-muted-txt uppercase tracking-wider mt-0.5 flex items-center gap-1.5">
+            {ispName ? (
+              <>
+                <span className="inline-block h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse shrink-0" />
+                Detected: <span className="text-orange-500 font-extrabold">{ispName}</span>
+              </>
+            ) : (
+              'Real-time connection audit'
+            )}
           </p>
         </div>
 
@@ -171,25 +189,25 @@ export default function SpeedTest() {
           </div>
         </div>
 
-        {/* Diagnostic Data Panels */}
+        {/* Diagnostic Data Panels (Improved Mobile Responsiveness) */}
         <div className="flex-grow space-y-4.5 w-full">
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-2 sm:gap-4">
             
             {/* Download panel */}
-            <div className="p-3 bg-input-bg rounded-2xl border border-[var(--card-border)] shadow-inner">
-              <span className="text-[10px] text-muted-txt font-extrabold uppercase tracking-wider block">Download Speed</span>
-              <span className="text-lg font-black text-foreground block mt-1 whitespace-nowrap">
+            <div className="p-2.5 sm:p-3 bg-input-bg rounded-2xl border border-[var(--card-border)] shadow-inner">
+              <span className="text-[9px] sm:text-[10px] text-muted-txt font-extrabold uppercase tracking-wider block truncate">Download Speed</span>
+              <span className="text-sm min-[360px]:text-base sm:text-lg font-black text-foreground block mt-1 truncate">
                 {speed > 0 ? `${speed} Mbps` : 'Measuring...'}
               </span>
             </div>
 
             {/* Latency (Ping) panel */}
-            <div className="p-3 bg-input-bg rounded-2xl border border-[var(--card-border)] shadow-inner">
-              <span className="text-[10px] text-muted-txt font-extrabold uppercase tracking-wider flex items-center gap-1">
+            <div className="p-2.5 sm:p-3 bg-input-bg rounded-2xl border border-[var(--card-border)] shadow-inner">
+              <span className="text-[9px] sm:text-[10px] text-muted-txt font-extrabold uppercase tracking-wider flex items-center gap-1 truncate">
                 <Activity size={10} className="text-muted-txt shrink-0" />
                 Latency (Ping)
               </span>
-              <span className="text-lg font-black text-foreground block mt-1">
+              <span className="text-sm min-[360px]:text-base sm:text-lg font-black text-foreground block mt-1 truncate">
                 {ping !== null ? `${ping} ms` : 'Testing...'}
               </span>
             </div>

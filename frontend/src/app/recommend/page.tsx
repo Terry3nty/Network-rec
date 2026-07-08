@@ -36,6 +36,7 @@ function RecommendContent() {
 
   const latParam = searchParams.get('lat');
   const lngParam = searchParams.get('lng');
+  const isIPLocation = searchParams.get('source') === 'ip';
 
   const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -65,7 +66,7 @@ function RecommendContent() {
         const lng = parseFloat(data.longitude);
         if (!isNaN(lat) && !isNaN(lng)) {
           setGpsLoading(false);
-          router.push(`/recommend?lat=${lat}&lng=${lng}`);
+          router.push(`/recommend?lat=${lat}&lng=${lng}&source=ip`);
           return true;
         }
       } catch (e) {
@@ -349,6 +350,30 @@ function RecommendContent() {
           </form>
         </div>
       </div>
+
+      {/* IP Geolocation Fallback Warning Banner */}
+      {isIPLocation && (
+        <div className="mb-8 flex flex-col sm:flex-row items-center justify-between gap-3.5 rounded-2xl bg-orange-500/5 border border-orange-500/15 p-4.5 text-xs sm:text-sm text-zinc-300 backdrop-blur-md">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <MapPin size={16} className="text-orange-500 shrink-0" />
+            <span className="leading-relaxed">
+              Showing rankings for your approximate **network IP location**. Mobile gateway routes can occasionally place you in a neighboring city.
+            </span>
+          </div>
+          <button
+            onClick={() => {
+              const inputEl = document.querySelector('input[placeholder="Search other area..."]') as HTMLInputElement;
+              if (inputEl) {
+                inputEl.focus();
+                inputEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+              }
+            }}
+            className="text-orange-500 hover:text-orange-400 font-extrabold underline shrink-0 cursor-pointer active:scale-98 transition-transform"
+          >
+            Correct Location Manually
+          </button>
+        </div>
+      )}
 
       {/* Main Results Grid */}
       {data && (
