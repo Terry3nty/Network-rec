@@ -65,7 +65,7 @@ export default function Home() {
         setError(msg);
         setLoading(false);
       },
-      { enableHighAccuracy: false, timeout: 6000 }
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
     );
   };
 
