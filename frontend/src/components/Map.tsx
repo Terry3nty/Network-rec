@@ -17,12 +17,13 @@ export default function Map({ latitude, longitude, locationName }: MapProps) {
     if (!mapContainerRef.current) return;
 
     // Safety check: Clean up any old map instance attached to the DOM node to prevent double initialization errors
-    if ((mapContainerRef.current as any)._leaflet_id) {
+    const container = mapContainerRef.current as unknown as { _leaflet_id?: number };
+    if (container._leaflet_id) {
       if (mapInstanceRef.current) {
         mapInstanceRef.current.remove();
         mapInstanceRef.current = null;
       }
-      delete (mapContainerRef.current as any)._leaflet_id;
+      delete container._leaflet_id;
     }
 
     // Fix Leaflet marker icon asset path issue

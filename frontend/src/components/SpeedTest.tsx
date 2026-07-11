@@ -80,9 +80,10 @@ export default function SpeedTest() {
       }
 
       setTestState('completed');
-    } catch (err: any) {
+    } catch (err) {
       console.error(err);
-      setErrorMsg(err.message || 'Network test failed. Server unreachable.');
+      const errMsg = err instanceof Error ? err.message : 'Network test failed. Server unreachable.';
+      setErrorMsg(errMsg);
       setTestState('error');
     }
   };

@@ -45,6 +45,7 @@ function RecommendContent() {
 
   const [geoError, setGeoError] = useState<string | null>(null);
   const [gpsLoading, setGpsLoading] = useState(false);
+  const [networkFilter, setNetworkFilter] = useState<'all' | 'carriers' | 'wifi'>('all');
 
   // Request browser geolocation with IP-based fallback
   const triggerGPS = useCallback(() => {
@@ -110,6 +111,7 @@ function RecommendContent() {
         // Trigger coordinate update asynchronously to avoid state issues in render
         const timer = setTimeout(() => {
           setCoords({ lat, lng });
+          setNetworkFilter('all');
           setGeoError(null);
         }, 0);
         return () => clearTimeout(timer);
@@ -138,6 +140,18 @@ function RecommendContent() {
     enabled: !!coords,
   });
 
+  // Filtered providers based on selection
+  const filteredProviders = data?.providers.filter((p) => {
+    const name = p.name.toLowerCase();
+    const isCarrier = ['mtn', 'airtel', 'glo', '9mobile'].includes(name);
+    const isWifi = ['starlink', 'fiberone', 'spectranet', 'smile'].includes(name);
+    if (networkFilter === 'carriers') return isCarrier;
+    if (networkFilter === 'wifi') return isWifi;
+    return true;
+  }) || [];
+
+  const recommendedProvider = filteredProviders.length > 0 ? filteredProviders[0].name : 'N/A';
+
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!searchQuery.trim()) return;
@@ -162,7 +176,7 @@ function RecommendContent() {
   // 1. loading geolocator state (when no url params and requesting GPS)
   if (gpsLoading || (isLoading && !data)) {
     return (
-      <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 flex items-center justify-center min-h-[70vh]">
+      <div className="mx-auto max-w-[87.938rem] px-4 py-16 sm:px-6 lg:px-8 flex items-center justify-center min-h-[70vh]">
         <LoadingAnimation customLocation={data?.location} />
       </div>
     );
@@ -281,7 +295,7 @@ function RecommendContent() {
   }
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+    <div className="mx-auto max-w-[87.938rem] px-4 py-8 sm:px-6 lg:px-8">
       {/* Search & Location Bar */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
         <div>
@@ -375,17 +389,59 @@ function RecommendContent() {
         </div>
       )}
 
+      {/* Segment Switch Selector (Premium styling matching the dark orange aesthetic) */}
+      {data && (
+        <div className="mb-8 flex justify-center">
+          <div className="relative flex rounded-2xl bg-zinc-900/60 p-1 border border-zinc-800/80 shadow-inner max-w-md w-full">
+            {(['all', 'carriers', 'wifi'] as const).map((filter) => {
+              const label =
+                filter === 'all'
+                  ? 'All Networks'
+                  : filter === 'carriers'
+                  ? 'Mobile'
+                  : 'WiFi & ISPs';
+              const isActive = networkFilter === filter;
+              return (
+                <button
+                  key={filter}
+                  onClick={() => setNetworkFilter(filter)}
+                  className={`relative flex-1 py-2.5 px-3 text-xs font-bold rounded-xl cursor-pointer border-0 outline-none select-none text-center transition-colors duration-200 ${
+                    isActive
+                      ? 'bg-orange-655 text-white shadow-md font-extrabold'
+                      : 'text-zinc-500 hover:text-zinc-300'
+                  }`}
+                >
+                  <span className="relative z-10">{label}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {/* Main Results Grid */}
       {data && (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
           {/* Left Panel: Recommendations & Rankings */}
           <div className="lg:col-span-7 flex flex-col gap-6">
-            <RecommendationCard
-              location={data.location}
-              recommended={data.recommended}
-              providers={data.providers}
-            />
-            <RankingList providers={data.providers} />
+            {filteredProviders.length > 0 ? (
+              <>
+                <RecommendationCard
+                  location={data.location}
+                  recommended={recommendedProvider}
+                  providers={filteredProviders}
+                />
+                <RankingList providers={filteredProviders} />
+              </>
+            ) : (
+              <div className="flex flex-col items-center justify-center p-8 bg-zinc-900/60 rounded-3xl border border-zinc-800/80 text-center min-h-[220px] shadow-lg">
+                <AlertCircle className="h-10 w-10 text-orange-500 mb-3 animate-pulse" />
+                <h4 className="text-white font-extrabold text-base">No Operators Found</h4>
+                <p className="text-zinc-500 text-xs mt-1.5 max-w-xs leading-relaxed">
+                  There are no active {networkFilter === 'carriers' ? 'mobile carriers' : 'WiFi ISPs'} detected in this zone.
+                </p>
+              </div>
+            )}
           </div>
 
           {/* Right Panel: Map */}
@@ -421,7 +477,7 @@ function RecommendContent() {
 export default function RecommendPage() {
   return (
     <Suspense fallback={
-      <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 flex items-center justify-center min-h-[70vh]">
+      <div className="mx-auto max-w-[87.938rem] px-4 py-16 sm:px-6 lg:px-8 flex items-center justify-center min-h-[70vh]">
         <div className="flex flex-col items-center">
           <Loader2 size={32} className="animate-spin text-orange-500 mb-2" />
           <span className="text-muted-txt text-sm font-bold">Initializing views...</span>

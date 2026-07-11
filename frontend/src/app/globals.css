@@ -1,6 +1,10 @@
 @import "tailwindcss";
 @import "leaflet/dist/leaflet.css";
 
+html {
+  overflow-y: scroll;
+}
+
 :root {
   --background: #09090b; /* Dark Zinc-955 */
   --foreground: #f4f4f5; /* Dark Zinc-100 */
