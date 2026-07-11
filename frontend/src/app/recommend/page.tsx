@@ -61,17 +61,34 @@ function RecommendContent() {
     const fallbackToIP = async (): Promise<boolean> => {
       try {
         const res = await fetch('https://ipapi.co/json/');
-        if (!res.ok) throw new Error('IP API failed');
-        const data = await res.json();
-        const lat = parseFloat(data.latitude);
-        const lng = parseFloat(data.longitude);
-        if (!isNaN(lat) && !isNaN(lng)) {
-          setGpsLoading(false);
-          router.push(`/recommend?lat=${lat}&lng=${lng}&source=ip`);
-          return true;
+        if (res.ok) {
+          const data = await res.json();
+          const lat = parseFloat(data.latitude);
+          const lng = parseFloat(data.longitude);
+          if (!isNaN(lat) && !isNaN(lng)) {
+            setGpsLoading(false);
+            router.push(`/recommend?lat=${lat}&lng=${lng}&source=ip`);
+            return true;
+          }
         }
       } catch (e) {
-        console.error('IP Geolocation fallback error:', e);
+        console.warn('First IP fallback (ipapi.co) failed, trying secondary...', e);
+      }
+
+      try {
+        const res = await fetch('https://freeipapi.com/api/json');
+        if (res.ok) {
+          const data = await res.json();
+          const lat = parseFloat(data.latitude);
+          const lng = parseFloat(data.longitude);
+          if (!isNaN(lat) && !isNaN(lng)) {
+            setGpsLoading(false);
+            router.push(`/recommend?lat=${lat}&lng=${lng}&source=ip`);
+            return true;
+          }
+        }
+      } catch (e) {
+        console.error('All IP Geolocation fallbacks failed:', e);
       }
       return false;
     };
