@@ -38,7 +38,11 @@ function RecommendContent() {
   const lngParam = searchParams.get('lng');
   const isIPLocation = searchParams.get('source') === 'ip';
 
-  const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(
+    latParam && lngParam && !isNaN(parseFloat(latParam)) && !isNaN(parseFloat(lngParam))
+      ? { lat: parseFloat(latParam), lng: parseFloat(lngParam) }
+      : { lat: 7.2241, lng: 3.4497 } // Default to Osiele, Ogun State benchmark
+  );
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<GeocodeResult[]>([]);
   const [searching, setSearching] = useState(false);
@@ -47,7 +51,7 @@ function RecommendContent() {
   const [gpsLoading, setGpsLoading] = useState(false);
   const [networkFilter, setNetworkFilter] = useState<'all' | 'carriers' | 'wifi'>('all');
 
-  // Request browser geolocation with IP-based fallback
+  // Request browser geolocation with fallback to Osiele
   const triggerGPS = useCallback(() => {
     setGpsLoading(true);
     setGeoError(null);
@@ -58,62 +62,22 @@ function RecommendContent() {
       return;
     }
 
-    const fallbackToIP = async (): Promise<boolean> => {
-      try {
-        const res = await fetch('https://ipapi.co/json/');
-        if (res.ok) {
-          const data = await res.json();
-          const lat = parseFloat(data.latitude);
-          const lng = parseFloat(data.longitude);
-          if (!isNaN(lat) && !isNaN(lng)) {
-            setGpsLoading(false);
-            router.push(`/recommend?lat=${lat}&lng=${lng}&source=ip`);
-            return true;
-          }
-        }
-      } catch (e) {
-        console.warn('First IP fallback (ipapi.co) failed, trying secondary...', e);
-      }
-
-      try {
-        const res = await fetch('https://freeipapi.com/api/json');
-        if (res.ok) {
-          const data = await res.json();
-          const lat = parseFloat(data.latitude);
-          const lng = parseFloat(data.longitude);
-          if (!isNaN(lat) && !isNaN(lng)) {
-            setGpsLoading(false);
-            router.push(`/recommend?lat=${lat}&lng=${lng}&source=ip`);
-            return true;
-          }
-        }
-      } catch (e) {
-        console.error('All IP Geolocation fallbacks failed:', e);
-      }
-      return false;
-    };
-
     navigator.geolocation.getCurrentPosition(
       (position) => {
         const { latitude, longitude } = position.coords;
+        setCoords({ lat: latitude, lng: longitude });
+        setNetworkFilter('all');
+        setGeoError(null);
         setGpsLoading(false);
         router.push(`/recommend?lat=${latitude}&lng=${longitude}`);
       },
-      async (err) => {
-        console.warn('Hardware GPS failed, attempting IP Geolocation fallback...', err);
-        const success = await fallbackToIP();
-        if (success) return;
-
-        let msg = 'Could not access geolocation sensor.';
-        if (err.code === 1) {
-          msg = 'Location permission was denied. Please search manually below.';
-        } else if (err.code === 2) {
-          msg = 'Position unavailable. Check your device location settings or search manually.';
-        } else if (err.code === 3) {
-          msg = 'Location request timed out. Please try again or search manually.';
-        }
-        setGeoError(msg);
+      (err) => {
+        console.warn('Hardware GPS unavailable, reverting to Osiele benchmark...', err);
+        setCoords({ lat: 7.2241, lng: 3.4497 });
+        setNetworkFilter('all');
+        setGeoError(null);
         setGpsLoading(false);
+        router.push('/recommend?lat=7.2241&lng=3.4497');
       },
       { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
     );

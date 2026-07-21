@@ -65,21 +65,9 @@ export default function Home() {
         const { latitude, longitude } = position.coords;
         router.push(`/recommend?lat=${latitude}&lng=${longitude}`);
       },
-      async (err) => {
-        console.warn('Hardware GPS failed, attempting IP Geolocation fallback...', err);
-        const success = await fallbackToIP();
-        if (success) return;
-
-        let msg = 'Failed to retrieve your location.';
-        if (err.code === 1) {
-          msg = 'Location permission denied. Please search for your location manually below.';
-        } else if (err.code === 2) {
-          msg = 'Position unavailable. Check your device location settings or search manually.';
-        } else if (err.code === 3) {
-          msg = 'Location request timed out. Please try again or search manually.';
-        }
-        setError(msg);
-        setLoading(false);
+      (err) => {
+        console.warn('Hardware GPS unavailable, defaulting to Osiele benchmark...', err);
+        router.push('/recommend?lat=7.2241&lng=3.4497');
       },
       { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
     );
