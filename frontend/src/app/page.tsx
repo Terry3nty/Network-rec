@@ -15,41 +15,7 @@ export default function Home() {
   const [searchResults, setSearchResults] = useState<GeocodeResult[]>([]);
   const [searching, setSearching] = useState(false);
 
-  // Fallback to IP-based Geolocation if hardware sensors fail
-  const fallbackToIP = async (): Promise<boolean> => {
-    try {
-      const res = await fetch('https://ipapi.co/json/');
-      if (res.ok) {
-        const data = await res.json();
-        const lat = parseFloat(data.latitude);
-        const lng = parseFloat(data.longitude);
-        if (!isNaN(lat) && !isNaN(lng)) {
-          router.push(`/recommend?lat=${lat}&lng=${lng}&source=ip`);
-          return true;
-        }
-      }
-    } catch (e) {
-      console.warn('First IP fallback (ipapi.co) failed, trying secondary...', e);
-    }
-
-    try {
-      const res = await fetch('https://freeipapi.com/api/json');
-      if (res.ok) {
-        const data = await res.json();
-        const lat = parseFloat(data.latitude);
-        const lng = parseFloat(data.longitude);
-        if (!isNaN(lat) && !isNaN(lng)) {
-          router.push(`/recommend?lat=${lat}&lng=${lng}&source=ip`);
-          return true;
-        }
-      }
-    } catch (e) {
-      console.error('All IP Geolocation fallbacks failed:', e);
-    }
-    return false;
-  };
-
-  // Trigger GPS Geolocation
+  // Trigger GPS Geolocation (Pure Hardware GPS)
   const handleGetLocation = () => {
     setLoading(true);
     setError(null);
@@ -66,10 +32,18 @@ export default function Home() {
         router.push(`/recommend?lat=${latitude}&lng=${longitude}`);
       },
       (err) => {
-        console.warn('Hardware GPS unavailable, defaulting to Osiele benchmark...', err);
-        router.push('/recommend?lat=7.2241&lng=3.4497');
+        let msg = 'Failed to retrieve your location.';
+        if (err.code === 1) {
+          msg = 'Location permission was denied. Please allow location access in your browser or search manually below.';
+        } else if (err.code === 2) {
+          msg = 'Position unavailable. Check your device location settings or search manually.';
+        } else if (err.code === 3) {
+          msg = 'Location request timed out. Please try again or search manually.';
+        }
+        setError(msg);
+        setLoading(false);
       },
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+      { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 }
     );
   };
 

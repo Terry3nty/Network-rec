@@ -41,7 +41,7 @@ function RecommendContent() {
   const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(
     latParam && lngParam && !isNaN(parseFloat(latParam)) && !isNaN(parseFloat(lngParam))
       ? { lat: parseFloat(latParam), lng: parseFloat(lngParam) }
-      : { lat: 7.2241, lng: 3.4497 } // Default to Osiele, Ogun State benchmark
+      : null
   );
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<GeocodeResult[]>([]);
@@ -51,7 +51,7 @@ function RecommendContent() {
   const [gpsLoading, setGpsLoading] = useState(false);
   const [networkFilter, setNetworkFilter] = useState<'all' | 'carriers' | 'wifi'>('all');
 
-  // Request browser geolocation with fallback to Osiele
+  // Request 100% pure hardware GPS geolocation with zero fallbacks
   const triggerGPS = useCallback(() => {
     setGpsLoading(true);
     setGeoError(null);
@@ -72,14 +72,18 @@ function RecommendContent() {
         router.push(`/recommend?lat=${latitude}&lng=${longitude}`);
       },
       (err) => {
-        console.warn('Hardware GPS unavailable, reverting to Osiele benchmark...', err);
-        setCoords({ lat: 7.2241, lng: 3.4497 });
-        setNetworkFilter('all');
-        setGeoError(null);
+        let msg = 'Could not access geolocation sensor.';
+        if (err.code === 1) {
+          msg = 'Location permission was denied. Please allow location access in your browser or search manually below.';
+        } else if (err.code === 2) {
+          msg = 'Position unavailable. Check your device location settings or search manually below.';
+        } else if (err.code === 3) {
+          msg = 'Location request timed out. Please try again or search manually below.';
+        }
+        setGeoError(msg);
         setGpsLoading(false);
-        router.push('/recommend?lat=7.2241&lng=3.4497');
       },
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+      { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 }
     );
   }, [router]);
 
