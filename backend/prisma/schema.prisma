@@ -41,5 +41,8 @@ model VisitorLog {
   city      String?
   country   String?
   userAgent String?
+  referrer  String?
+  path      String?
+  device    String?
   createdAt DateTime @default(now())
 }

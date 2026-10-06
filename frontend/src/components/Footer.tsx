@@ -1,4 +1,5 @@
 import React from 'react';
+import Link from 'next/link';
 import { Signal } from 'lucide-react';
 
 export default function Footer() {
@@ -18,9 +19,11 @@ export default function Footer() {
             &copy; {new Date().getFullYear()} NetworkWise. Powered by open data and crowdsourced metrics.
           </p>
           <div className="flex gap-4 text-xs text-zinc-500">
-            <span className="hover:text-white cursor-pointer transition-colors">Privacy Policy</span>
+            <Link href="/analytics" className="hover:text-orange-400 transition-colors">Analytics</Link>
             <span>&bull;</span>
-            <span className="hover:text-white cursor-pointer transition-colors">Terms of Service</span>
+            <Link href="/privacy" className="hover:text-white transition-colors">Privacy Policy</Link>
+            <span>&bull;</span>
+            <Link href="/terms" className="hover:text-white transition-colors">Terms of Service</Link>
           </div>
         </div>
       </div>

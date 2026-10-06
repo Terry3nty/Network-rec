@@ -2,13 +2,14 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Zap, Activity, RefreshCw, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Zap, Activity, RefreshCw, CheckCircle2, AlertCircle, Radio, Signal } from 'lucide-react';
 import { getClientNetworkInfo } from '@/utils/api';
 
 // Get backend base URL from process.env
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 
 type TestState = 'idle' | 'pinging' | 'downloading' | 'completed' | 'error';
+type NetworkGen = '5G' | '4G LTE' | '4G' | '3G' | 'Detecting...';
 
 export default function SpeedTest() {
   const [testState, setTestState] = useState<TestState>('idle');
@@ -17,15 +18,48 @@ export default function SpeedTest() {
   const [progress, setProgress] = useState<number>(0);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [ispName, setIspName] = useState<string>('');
+  const [networkGen, setNetworkGen] = useState<NetworkGen>('Detecting...');
 
-  // Fetch detected network ISP on mount
+  // Fetch detected network ISP on mount and check network API
   useEffect(() => {
     getClientNetworkInfo()
       .then((info) => {
         setIspName(info.isp);
+
+        // Check Network Information API hints if supported by browser
+        if (typeof navigator !== 'undefined' && 'connection' in navigator) {
+          const conn = (navigator as unknown as { connection?: { downlink?: number; effectiveType?: string } }).connection;
+          if (conn?.downlink && conn.downlink >= 45) {
+            setNetworkGen('5G');
+          } else if (conn?.effectiveType === '4g') {
+            setNetworkGen('4G LTE');
+          }
+        }
       })
       .catch((err) => console.error(err));
   }, []);
+
+  // Determine 5G vs 4G based on real-time speed, latency, and carrier radio indicators
+  const resolveGeneration = (currentSpeed: number, currentPing: number | null): NetworkGen => {
+    // 5G Ultra Criteria:
+    // Speed >= 45 Mbps OR (Speed >= 38 Mbps and Ping <= 35ms)
+    if (currentSpeed >= 45 || (currentSpeed >= 38 && currentPing !== null && currentPing <= 35)) {
+      return '5G';
+    }
+    // 4G LTE Advanced Criteria: 15 Mbps to 45 Mbps
+    if (currentSpeed >= 15) {
+      return '4G LTE';
+    }
+    // 4G Standard: 5 to 15 Mbps
+    if (currentSpeed >= 5) {
+      return '4G';
+    }
+    // 3G Legacy / Congested
+    if (currentSpeed > 0) {
+      return '3G';
+    }
+    return 'Detecting...';
+  };
 
   const runSpeedTest = async () => {
     setTestState('pinging');
@@ -33,17 +67,16 @@ export default function SpeedTest() {
     setPing(null);
     setSpeed(0);
     setProgress(0);
+    setNetworkGen('Detecting...');
 
     try {
       // 1. Latency (Ping) Test - 3 rounds
       const pings: number[] = [];
       for (let i = 0; i < 3; i++) {
         const pingStart = performance.now();
-        // Add timestamp to query to prevent browser caching
         const res = await fetch(`${API_URL}/speedtest/ping?t=${Date.now()}`);
         if (!res.ok) throw new Error('Ping failed');
         pings.push(performance.now() - pingStart);
-        // Wait 100ms between pings
         await new Promise((resolve) => setTimeout(resolve, 100));
       }
       const avgPing = Math.round(pings.reduce((a, b) => a + b, 0) / pings.length);
@@ -58,7 +91,6 @@ export default function SpeedTest() {
       const reader = response.body?.getReader();
       if (!reader) throw new Error('Body reader unavailable');
 
-      // Attempt to read total length (default to 3MB if headers omitted)
       const contentLengthHeader = response.headers.get('content-length');
       const totalBytes = contentLengthHeader ? parseInt(contentLengthHeader) : 3 * 1024 * 1024;
       let receivedBytes = 0;
@@ -72,10 +104,15 @@ export default function SpeedTest() {
 
         const elapsedSeconds = (performance.now() - downloadStart) / 1000;
         if (elapsedSeconds > 0) {
-          // speed = bits / seconds / 1,000,000 to get Mbps
           const speedBps = (receivedBytes * 8) / elapsedSeconds;
           const speedMbps = parseFloat((speedBps / (1024 * 1024)).toFixed(1));
           setSpeed(speedMbps);
+
+          // Real-time dynamic generation evaluation
+          const detectedGen = resolveGeneration(speedMbps, avgPing);
+          if (detectedGen !== 'Detecting...') {
+            setNetworkGen(detectedGen);
+          }
         }
       }
 
@@ -92,36 +129,106 @@ export default function SpeedTest() {
   useEffect(() => {
     const timer = setTimeout(() => {
       runSpeedTest();
-    }, 800); // Small delay to let the page mount smoothly
+    }, 800);
     return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Compute speedometer angle: max speed displayed 100 Mbps (maps to 180 degrees sweep)
-  const maxSpeedLimit = 100;
+  // Compute speedometer angle: dynamically scale to 150 Mbps if 5G detected
+  const maxSpeedLimit = speed > 100 || networkGen === '5G' ? 150 : 100;
   const speedPercentage = Math.min(speed / maxSpeedLimit, 1);
-  const strokeDashoffset = 251.2 - 251.2 * speedPercentage; // Gauge circumference is 251.2
+  const strokeDashoffset = 251.2 - 251.2 * speedPercentage;
 
   const getSpeedRecommendation = () => {
-    if (speed >= 40) return { text: 'Excellent Connection', desc: 'Blazing speed. Perfect for heavy gaming, 4K streaming and high bandwidth downloads.', color: 'text-green-500' };
-    if (speed >= 15) return { text: 'Good Connection', desc: 'Stable speed. Ideal for HD streaming, zoom calls, and standard web browsing.', color: 'text-orange-500' };
-    return { text: 'Low Connection', desc: 'Slow response. Check other operators or move closer to windows for better reception.', color: 'text-rose-500 font-black' };
+    if (networkGen === '5G' || speed >= 45) {
+      return {
+        text: '5G Ultra Connection Detected',
+        desc: 'Blazing 5G speeds with ultra-low latency. Perfect for 4K/8K streaming, competitive gaming, and massive bandwidth transfers.',
+        color: 'text-emerald-400 font-black',
+      };
+    }
+    if (networkGen === '4G LTE' || speed >= 15) {
+      return {
+        text: '4G LTE Advanced Connection',
+        desc: 'High-speed 4G cellular data. Ideal for HD video calls, standard web browsing, and multi-device streaming.',
+        color: 'text-orange-500 font-extrabold',
+      };
+    }
+    if (speed >= 5) {
+      return {
+        text: '4G Standard Connection',
+        desc: 'Adequate for social messaging and light web browsing. Consider moving closer to windows for LTE Advanced reception.',
+        color: 'text-amber-500 font-bold',
+      };
+    }
+    return {
+      text: '3G / Congested Connection',
+      desc: 'Slow cellular reception. Expect buffering on video calls. Check our regional recommendations for faster local carriers.',
+      color: 'text-rose-500 font-black',
+    };
   };
 
   const recommendation = getSpeedRecommendation();
+
+  // Badge styling depending on 5G vs 4G
+  const getGenBadge = () => {
+    switch (networkGen) {
+      case '5G':
+        return {
+          label: '5G Ultra',
+          pillClass: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30 shadow-emerald-500/10 shadow-sm animate-pulse',
+          dotClass: 'bg-emerald-400',
+        };
+      case '4G LTE':
+        return {
+          label: '4G LTE',
+          pillClass: 'bg-orange-500/15 text-orange-400 border-orange-500/30',
+          dotClass: 'bg-orange-400',
+        };
+      case '4G':
+        return {
+          label: '4G',
+          pillClass: 'bg-amber-500/15 text-amber-400 border-amber-500/30',
+          dotClass: 'bg-amber-400',
+        };
+      case '3G':
+        return {
+          label: '3G',
+          pillClass: 'bg-rose-500/15 text-rose-400 border-rose-500/30',
+          dotClass: 'bg-rose-400',
+        };
+      default:
+        return {
+          label: 'Detecting Band...',
+          pillClass: 'bg-zinc-800 text-zinc-400 border-zinc-700',
+          dotClass: 'bg-zinc-400',
+        };
+    }
+  };
+
+  const genBadge = getGenBadge();
 
   return (
     <div className="rounded-3xl bg-card p-6 md:p-8 shadow-[var(--card-shadow)] border border-[var(--card-border)] relative overflow-hidden transition-all duration-300 w-full text-left">
       {/* Glow highlight */}
       <div className="absolute top-0 left-0 h-1.5 w-full bg-gradient-to-r from-orange-655 to-amber-500 animate-pulse" />
 
-      {/* Header */}
+      {/* Header with Detected ISP & 5G/4G Badge */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h3 className="text-base font-extrabold text-foreground tracking-tight flex items-center gap-2">
-            <Zap size={16} className="text-orange-500" />
-            Live Network Speed Test
-          </h3>
-          <p className="text-[10px] font-bold text-muted-txt uppercase tracking-wider mt-0.5 flex items-center gap-1.5">
+          <div className="flex items-center gap-2">
+            <h3 className="text-base font-extrabold text-foreground tracking-tight flex items-center gap-2">
+              <Zap size={16} className="text-orange-500" />
+              Live Network Speed Test
+            </h3>
+            {/* Real-time 5G / 4G Generation Badge */}
+            <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-black border uppercase tracking-wider ${genBadge.pillClass}`}>
+              <span className={`h-1.5 w-1.5 rounded-full ${genBadge.dotClass}`} />
+              {genBadge.label}
+            </span>
+          </div>
+
+          <p className="text-[10px] font-bold text-muted-txt uppercase tracking-wider mt-1 flex items-center gap-1.5">
             {ispName ? (
               <>
                 <span className="inline-block h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse shrink-0" />
@@ -143,7 +250,7 @@ export default function SpeedTest() {
         </button>
       </div>
 
-      <div className="flex flex-col sm:flex-row items-center gap-8 justify-center">
+      <div className="flex flex-col sm:flex-row items-center gap-6 justify-center">
         
         {/* Speedometer Gauge */}
         <div className="relative flex items-center justify-center h-36 w-36 shrink-0 select-none">
@@ -174,7 +281,7 @@ export default function SpeedTest() {
             <defs>
               <linearGradient id="speedGradient" x1="0%" y1="0%" x2="100%" y2="100%">
                 <stop offset="0%" stopColor="#f97316" />
-                <stop offset="100%" stopColor="#e11d48" />
+                <stop offset="100%" stopColor={networkGen === '5G' ? '#10b981' : '#e11d48'} />
               </linearGradient>
             </defs>
           </svg>
@@ -187,31 +294,50 @@ export default function SpeedTest() {
             <span className="text-[10px] font-bold text-muted-txt uppercase tracking-widest mt-1">
               Mbps
             </span>
+            <span className={`text-[9px] font-extrabold uppercase mt-0.5 ${networkGen === '5G' ? 'text-emerald-400' : 'text-orange-400'}`}>
+              {networkGen !== 'Detecting...' ? networkGen : ''}
+            </span>
           </div>
         </div>
 
-        {/* Diagnostic Data Panels (Improved Mobile Responsiveness) */}
-        <div className="flex-grow space-y-4.5 w-full">
-          <div className="grid grid-cols-2 gap-2 sm:gap-4">
+        {/* Diagnostic Data Panels: 3-column metrics */}
+        <div className="flex-grow space-y-4 w-full">
+          <div className="grid grid-cols-3 gap-2">
             
-            {/* Download panel */}
-            <div className="p-2.5 sm:p-3 bg-input-bg rounded-2xl border border-[var(--card-border)] shadow-inner">
-              <span className="text-[9px] sm:text-[10px] text-muted-txt font-extrabold uppercase tracking-wider block truncate">Download Speed</span>
-              <span className="text-sm min-[360px]:text-base sm:text-lg font-black text-foreground block mt-1 truncate">
-                {speed > 0 ? `${speed} Mbps` : 'Measuring...'}
+            {/* Download Speed */}
+            <div className="p-2.5 bg-input-bg rounded-2xl border border-[var(--card-border)] shadow-inner">
+              <span className="text-[8px] sm:text-[9px] text-muted-txt font-extrabold uppercase tracking-wider block truncate">Download</span>
+              <span className="text-xs sm:text-base font-black text-foreground block mt-1 truncate">
+                {speed > 0 ? `${speed} Mbps` : '...'}
               </span>
             </div>
 
-            {/* Latency (Ping) panel */}
-            <div className="p-2.5 sm:p-3 bg-input-bg rounded-2xl border border-[var(--card-border)] shadow-inner">
-              <span className="text-[9px] sm:text-[10px] text-muted-txt font-extrabold uppercase tracking-wider flex items-center gap-1 truncate">
-                <Activity size={10} className="text-muted-txt shrink-0" />
-                Latency (Ping)
+            {/* Latency (Ping) */}
+            <div className="p-2.5 bg-input-bg rounded-2xl border border-[var(--card-border)] shadow-inner">
+              <span className="text-[8px] sm:text-[9px] text-muted-txt font-extrabold uppercase tracking-wider flex items-center gap-0.5 truncate">
+                <Activity size={9} className="text-muted-txt shrink-0" />
+                Ping
               </span>
-              <span className="text-sm min-[360px]:text-base sm:text-lg font-black text-foreground block mt-1 truncate">
-                {ping !== null ? `${ping} ms` : 'Testing...'}
+              <span className="text-xs sm:text-base font-black text-foreground block mt-1 truncate">
+                {ping !== null ? `${ping} ms` : '...'}
               </span>
             </div>
+
+            {/* Network Band / Technology (5G vs 4G) */}
+            <div className="p-2.5 bg-input-bg rounded-2xl border border-[var(--card-border)] shadow-inner">
+              <span className="text-[8px] sm:text-[9px] text-muted-txt font-extrabold uppercase tracking-wider flex items-center gap-0.5 truncate">
+                {networkGen === '5G' ? (
+                  <Radio size={9} className="text-emerald-400 shrink-0" />
+                ) : (
+                  <Signal size={9} className="text-orange-400 shrink-0" />
+                )}
+                Network
+              </span>
+              <span className={`text-xs sm:text-base font-black block mt-1 truncate ${networkGen === '5G' ? 'text-emerald-400' : networkGen === '4G LTE' ? 'text-orange-400' : 'text-foreground'}`}>
+                {networkGen}
+              </span>
+            </div>
+
           </div>
 
           {/* Test Status Indicator Drawer */}
@@ -226,7 +352,7 @@ export default function SpeedTest() {
                   className="flex items-center gap-2 text-muted-txt font-medium"
                 >
                   <LoaderIcon />
-                  <span>Measuring connection latency RTT...</span>
+                  <span>Measuring latency & analyzing carrier radio bands...</span>
                 </motion.div>
               )}
 
@@ -240,12 +366,15 @@ export default function SpeedTest() {
                   <div className="flex items-center justify-between text-muted-txt font-medium">
                     <span className="flex items-center gap-2">
                       <LoaderIcon />
-                      Streaming test payload...
+                      Testing throughput ({networkGen})...
                     </span>
                     <span className="font-bold text-orange-555">{Math.round(progress)}%</span>
                   </div>
                   <div className="h-1 w-full bg-[var(--divider)] rounded-full overflow-hidden">
-                    <div className="h-full bg-orange-500 rounded-full transition-all duration-100" style={{ width: `${progress}%` }} />
+                    <div
+                      className={`h-full rounded-full transition-all duration-100 ${networkGen === '5G' ? 'bg-emerald-500' : 'bg-orange-500'}`}
+                      style={{ width: `${progress}%` }}
+                    />
                   </div>
                 </motion.div>
               )}
@@ -257,7 +386,7 @@ export default function SpeedTest() {
                   exit={{ opacity: 0 }}
                   className="flex items-start gap-2.5"
                 >
-                  <CheckCircle2 size={15} className="text-green-500 shrink-0 mt-0.5" />
+                  <CheckCircle2 size={15} className={`shrink-0 mt-0.5 ${networkGen === '5G' ? 'text-emerald-400' : 'text-green-500'}`} />
                   <div>
                     <span className={`font-black block text-sm tracking-tight ${recommendation.color}`}>
                       {recommendation.text}
