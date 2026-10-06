@@ -4,6 +4,7 @@ import './globals.css';
 import Providers from '@/components/Providers';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
+import TrafficTracker from '@/components/TrafficTracker';
 
 const geistSans = Geist({
   variable: '--font-geist-sans',
@@ -32,6 +33,7 @@ export default function RootLayout({
     >
       <body className="min-h-full flex flex-col bg-[var(--background)] text-[var(--foreground)] transition-colors duration-300">
         <Providers>
+          <TrafficTracker />
           <Navbar />
           <main className="flex-grow flex flex-col">
             {children}

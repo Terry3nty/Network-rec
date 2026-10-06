@@ -52,70 +52,186 @@ app.get('/speedtest/download', (req, res) => {
   res.send(buffer);
 });
 
-// Record visitor details in database
+// In-memory fallback ring buffer to ensure analytics work even during DB maintenance
+interface InMemoryLog {
+  id: string;
+  ip: string;
+  isp?: string | null;
+  city?: string | null;
+  country?: string | null;
+  userAgent?: string | null;
+  referrer?: string | null;
+  path?: string | null;
+  device?: string | null;
+  createdAt: Date;
+}
+const inMemoryLogs: InMemoryLog[] = [];
+const MAX_IN_MEMORY_LOGS = 300;
+
+function categorizeReferrer(rawReferrer?: string | null): string {
+  if (!rawReferrer || rawReferrer.trim() === '' || rawReferrer === 'direct') {
+    return 'Direct / Bookmark';
+  }
+  const ref = rawReferrer.toLowerCase();
+  if (ref.includes('linkedin.com') || ref.includes('lnkd.in')) {
+    return 'LinkedIn';
+  }
+  if (ref.includes('whatsapp.com') || ref.includes('whatsapp') || ref.includes('wa.me')) {
+    return 'WhatsApp';
+  }
+  if (ref.includes('t.co') || ref.includes('twitter.com') || ref.includes('x.com')) {
+    return 'Twitter / X';
+  }
+  if (ref.includes('google.') || ref.includes('bing.') || ref.includes('duckduckgo.')) {
+    return 'Google / Search';
+  }
+  if (ref.includes('facebook.com') || ref.includes('fb.me') || ref.includes('instagram.com')) {
+    return 'Social Media';
+  }
+  if (ref.includes('github.com')) {
+    return 'GitHub';
+  }
+  try {
+    const url = new URL(rawReferrer);
+    return url.hostname.replace('www.', '');
+  } catch {
+    return 'Referral Link';
+  }
+}
+
+function detectDevice(ua?: string | null): string {
+  if (!ua) return 'Desktop';
+  const lower = ua.toLowerCase();
+  if (lower.includes('ipad') || lower.includes('tablet') || (lower.includes('android') && !lower.includes('mobile'))) {
+    return 'Tablet';
+  }
+  if (lower.includes('mobile') || lower.includes('iphone') || lower.includes('android')) {
+    return 'Mobile';
+  }
+  return 'Desktop';
+}
+
+// Record visitor details in database with in-memory resilience
 app.post('/analytics/log-visit', async (req, res) => {
   try {
     const forwarded = req.headers['x-forwarded-for'] as string;
     const ip = forwarded ? forwarded.split(',')[0].trim() : (req.socket.remoteAddress || 'Unknown IP');
-    const { isp, city, country, userAgent } = req.body;
-    
-    const log = await prisma.visitorLog.create({
-      data: {
-        ip,
-        isp: isp || null,
-        city: city || null,
-        country: country || null,
-        userAgent: userAgent || req.headers['user-agent'] || null,
-      },
-    });
-    res.status(201).json({ status: 'ok', id: log.id });
+    const { isp, city, country, userAgent, referrer, path, device } = req.body;
+
+    const rawReferrer = referrer || req.headers['referer'] || req.headers['referrer'] || null;
+    const detectedChannel = categorizeReferrer(rawReferrer as string);
+    const resolvedUserAgent = userAgent || (req.headers['user-agent'] as string) || null;
+    const resolvedDevice = device || detectDevice(resolvedUserAgent);
+    const resolvedPath = path || '/';
+
+    const logEntry: InMemoryLog = {
+      id: `mem-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+      ip,
+      isp: isp || null,
+      city: city || null,
+      country: country || null,
+      userAgent: resolvedUserAgent,
+      referrer: detectedChannel,
+      path: resolvedPath,
+      device: resolvedDevice,
+      createdAt: new Date(),
+    };
+
+    inMemoryLogs.unshift(logEntry);
+    if (inMemoryLogs.length > MAX_IN_MEMORY_LOGS) {
+      inMemoryLogs.pop();
+    }
+
+    try {
+      const dbLog = await prisma.visitorLog.create({
+        data: {
+          ip,
+          isp: isp || null,
+          city: city || null,
+          country: country || null,
+          userAgent: resolvedUserAgent,
+          referrer: detectedChannel,
+          path: resolvedPath,
+          device: resolvedDevice,
+        },
+      });
+      return res.status(201).json({ status: 'ok', id: dbLog.id, channel: detectedChannel });
+    } catch {
+      return res.status(201).json({ status: 'ok', id: logEntry.id, channel: detectedChannel, source: 'memory' });
+    }
   } catch (error) {
     console.error('Failed to log visitor:', error);
     res.status(500).json({ error: 'Failed to record visit log.' });
   }
 });
 
-// Retrieve traffic and connection stats
+// Retrieve comprehensive traffic & acquisition intelligence
 app.get('/analytics/stats', async (req, res) => {
   try {
-    const totalVisits = await prisma.visitorLog.count();
-    
-    // Group unique IPs count using raw query
-    const uniqueIps = await prisma.$queryRaw<{ count: bigint }[]>`
-      SELECT COUNT(DISTINCT ip) as count FROM "VisitorLog"
-    `;
-    const uniqueCount = uniqueIps[0]?.count ? Number(uniqueIps[0].count) : 0;
+    let logs: (InMemoryLog | any)[] = [];
+    let isDbConnected = false;
 
-    // Group and rank popular ISPs
-    const topIsps = await prisma.visitorLog.groupBy({
-      by: ['isp'],
-      _count: {
-        id: true,
-      },
-      orderBy: {
-        _count: {
-          id: 'desc',
-        },
-      },
-      take: 5,
-    });
+    try {
+      logs = await prisma.visitorLog.findMany({
+        orderBy: { createdAt: 'desc' },
+        take: 300,
+      });
+      isDbConnected = true;
+    } catch {
+      logs = inMemoryLogs;
+    }
 
-    // Fetch the 15 most recent visitors
-    const recentLogs = await prisma.visitorLog.findMany({
-      orderBy: {
-        createdAt: 'desc',
-      },
-      take: 15,
-    });
+    if (logs.length === 0 && inMemoryLogs.length > 0) {
+      logs = inMemoryLogs;
+    }
+
+    const totalVisits = isDbConnected ? await prisma.visitorLog.count().catch(() => logs.length) : logs.length;
+    const uniqueIps = new Set(logs.map((l) => l.ip)).size;
+
+    const referrerCounts: Record<string, number> = {};
+    const cityCounts: Record<string, number> = {};
+    const countryCounts: Record<string, number> = {};
+    const ispCounts: Record<string, number> = {};
+    const deviceCounts: Record<string, number> = {};
+    const pathCounts: Record<string, number> = {};
+
+    for (const log of logs) {
+      const ref = log.referrer || 'Direct / Bookmark';
+      referrerCounts[ref] = (referrerCounts[ref] || 0) + 1;
+
+      const city = log.city || 'Unknown';
+      cityCounts[city] = (cityCounts[city] || 0) + 1;
+
+      const country = log.country || 'Nigeria';
+      countryCounts[country] = (countryCounts[country] || 0) + 1;
+
+      const isp = log.isp || 'Unknown';
+      ispCounts[isp] = (ispCounts[isp] || 0) + 1;
+
+      const device = log.device || 'Desktop';
+      deviceCounts[device] = (deviceCounts[device] || 0) + 1;
+
+      const path = log.path || '/';
+      pathCounts[path] = (pathCounts[path] || 0) + 1;
+    }
+
+    const sortObject = (obj: Record<string, number>, limit = 8) =>
+      Object.entries(obj)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, limit)
+        .map(([name, count]) => ({ name, count }));
 
     res.status(200).json({
-      totalVisits,
-      uniqueVisitors: uniqueCount,
-      topIsps: topIsps.map((item) => ({
-        isp: item.isp || 'Unknown',
-        count: item._count.id,
-      })),
-      recentLogs,
+      totalVisits: Math.max(totalVisits, logs.length),
+      uniqueVisitors: Math.max(uniqueIps, 1),
+      topReferrers: sortObject(referrerCounts),
+      topCities: sortObject(cityCounts),
+      topCountries: sortObject(countryCounts),
+      topIsps: sortObject(ispCounts),
+      deviceBreakdown: sortObject(deviceCounts),
+      popularPages: sortObject(pathCounts),
+      recentLogs: logs.slice(0, 30),
+      dbConnected: isDbConnected,
     });
   } catch (error) {
     console.error('Failed to fetch analytics statistics:', error);

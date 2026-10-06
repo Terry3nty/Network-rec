@@ -81,6 +81,40 @@ export interface LogVisitPayload {
   city?: string;
   country?: string;
   userAgent?: string;
+  referrer?: string;
+  path?: string;
+  device?: string;
+}
+
+export interface AnalyticsMetricItem {
+  name: string;
+  count: number;
+}
+
+export interface VisitorLogEntry {
+  id: string;
+  ip: string;
+  isp?: string | null;
+  city?: string | null;
+  country?: string | null;
+  userAgent?: string | null;
+  referrer?: string | null;
+  path?: string | null;
+  device?: string | null;
+  createdAt: string;
+}
+
+export interface AnalyticsStats {
+  totalVisits: number;
+  uniqueVisitors: number;
+  topReferrers: AnalyticsMetricItem[];
+  topCities: AnalyticsMetricItem[];
+  topCountries: AnalyticsMetricItem[];
+  topIsps: AnalyticsMetricItem[];
+  deviceBreakdown: AnalyticsMetricItem[];
+  popularPages: AnalyticsMetricItem[];
+  recentLogs: VisitorLogEntry[];
+  dbConnected: boolean;
 }
 
 export async function logVisitorVisit(payload: LogVisitPayload): Promise<void> {
@@ -95,6 +129,16 @@ export async function logVisitorVisit(payload: LogVisitPayload): Promise<void> {
   } catch (err) {
     console.error('Failed to log visitor statistics:', err);
   }
+}
+
+export async function fetchAnalyticsStats(): Promise<AnalyticsStats> {
+  const response = await fetch(`${API_BASE_URL}/analytics/stats`, {
+    cache: 'no-store',
+  });
+  if (!response.ok) {
+    throw new Error('Failed to load traffic analytics statistics.');
+  }
+  return response.json();
 }
 
 /**
