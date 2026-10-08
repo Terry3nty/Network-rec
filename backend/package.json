@@ -4,7 +4,8 @@
   "description": "Backend engine for NetworkWise best mobile network recommender",
   "main": "dist/index.js",
   "scripts": {
-    "build": "tsc",
+    "postinstall": "prisma generate",
+    "build": "prisma generate && tsc",
     "start": "node dist/index.js",
     "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
     "prisma:generate": "prisma generate",
